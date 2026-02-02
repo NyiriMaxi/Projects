@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Chatbot</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body{
             font-family: Arial,sans-serif;
@@ -74,6 +75,7 @@
 
     <script>
         let sessionId=null;
+
         async function sendMessage() {
             const input=document.getElementById('message-input');
             const message=input.value.trim();
@@ -83,50 +85,102 @@
             AddMessageToChat('user',message);
             input.value='';
 
+
+            const loadingId = addLoadingIndicator();
             try{
+
+                const requestData = {
+                    message: message
+                };
+
+                if (sessionId) {
+                    requestData.session_id = sessionId;
+                }
                 const response =await fetch('http://localhost:8000/chat', {
                     method: 'POST',
                     headers:{
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        session_id:sessionId,
-                        message:message,
-                    })
+                    body: JSON.stringify(
+                        requestData
+                    )
                 });
-
+                removeLoadingIndicator(loadingId);
                 const data=await response.json();
                 sessionId=data.session_id;
 
-                AddMessageToChat('assistant',data.response);
+               if (data.response) {
+                    AddMessageToChat('assistant', data.response);
+                } else {
+                    AddMessageToChat('assistant', '(Nincs válasz)');
+                }
             }catch(error)
             {
                 console.error('Error:',error)
                 AddMessageToChat('assistant', 'Hiba történt. Próbáld újra!');
             }
-
-            function AddMessageToChat(role,contetn)
+        }
+        function AddMessageToChat(role,content)
+        {
+            const chatContainer=document.getElementById('chat-container');
+            const messageDiv=document.createElement('div');
+            messageDiv.className=`message ${role}-message`
+            if(!content ||content===null||content===undefined)
             {
-                const chatContainer=document.getElementById('chat-container');
-                const messageDiv=document.createElement('div');
-                messageDiv.className=`message ${role}-message`
-                messageDiv.textContent = content;
-                chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                content='';
             }
-            
-            async function resetChat() {
-                if(sessionId)
-                {
-                    await fetch('http://localhost:8000/reset', {
-                        method:'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(sessionId)
-                    });
+            if (role=="assistant"){
+                try{
+                    messageDiv.innerHTML=marked.parse(content);
                 }
-                sessionId=null;
-                document.getElementById('chat-container').innerHTML='';
+                catch(error)
+                {
+                    console.error('Markdown parse hiba:', error);
+                    messageDiv.textContent = messageText;
+                }
+
+            } 
+            else
+            {
+                messageDiv.textContent=content;
             }
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        function addLoadingIndicator() {
+            const chatContainer = document.getElementById('chat-container');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant-message';
+            loadingDiv.id = 'loading-' + Date.now();
+            loadingDiv.innerHTML = '<span class="loading"></span><span class="loading"></span><span class="loading"></span>';
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return loadingDiv.id;
+        }
+
+        function removeLoadingIndicator(loadingId) {
+            const loadingDiv = document.getElementById(loadingId);
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+        }
+            
+        async function resetChat() {
+            if(sessionId)
+            {
+                await fetch('http://localhost:8000/reset', {
+                    method:'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(sessionId)
+                });
+            }
+            sessionId=null;
+            document.getElementById('chat-container').innerHTML='';
+            AddMessageToChat('assistant', 'Szia! Miben segíthetek?');
+        }
+
+        window.onload=function() {
+            AddMessageToChat('assistant', 'Szia! Miben segíthetek?');
         }
     </script>
 </body>
