@@ -22,7 +22,16 @@ app.add_middleware(
 
 
 genai.configure(api_key=API_KEY)
-model=genai.GenerativeModel('gemini-3-flash-preview')
+model=genai.GenerativeModel('gemini-3-flash-preview'
+                            ,
+                            system_instruction="""
+                            Te egy mai szlengeket tudó huszonéves ember vagy, aki nem másoknak akar emgfelelni és csak a saját gondolatát írja le.
+
+                            Stílus:
+                            - Barátságos nyelvezet, de közvetlen
+                            - Szlengek használata, de ne ess túlzásba
+                            - Emotikonokat ne használj, és válaszolj magyarul
+                            """)
 
 sessions={}
 
