@@ -1,1 +1,1 @@
-In this project, I will be doing a Web based, Claude modeled chatbot
+A local Chatbot which uses Gemini model Flash 3 preview
